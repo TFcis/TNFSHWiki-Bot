@@ -44,6 +44,14 @@ class MigrateTeacherDataToItem:
         '現任': 'Q64',
         '離任': 'Q65',
     }
+    YEAR_QID = {
+        103: 'Q74',
+        104: 'Q73',
+        105: 'Q72',
+        106: 'Q71',
+        107: 'Q70',
+        108: 'Q64',
+    }
 
     def main(self, title):
         page = pywikibot.Page(site, title)
@@ -58,6 +66,7 @@ class MigrateTeacherDataToItem:
         gender_id = self._parse_gender(gender)
         subject_id = self._parse_subject(subject)
         jobs_id = self._parse_jobs(jobs)
+        class_id = self._parse_class(classes)
         live_id = self._parse_live(live)
 
         print('gender', gender, gender_id)
@@ -110,9 +119,12 @@ class MigrateTeacherDataToItem:
             data['claims'].append(new_claim.toJSON())
 
         # 導師
-        if classes:
+        if class_id:
             new_claim = pywikibot.page.Claim(datasite, 'P25')
-            new_claim.setTarget(pywikibot.ItemPage(datasite, classes))
+            new_claim.setTarget(class_id[0])
+            qualifier = pywikibot.page.Claim(datasite, 'P27')  # 學年度
+            qualifier.setTarget(pywikibot.ItemPage(datasite, self.YEAR_QID[class_id[1]]))
+            new_claim.addQualifier(qualifier)
             data['claims'].append(new_claim.toJSON())
 
         # 任職狀況
@@ -163,8 +175,18 @@ class MigrateTeacherDataToItem:
             return None
         return self.SUBJECT_QID[subject]
 
+    def _parse_class(self, classes):
+        if not classes:
+            return None
+        m = re.search(r'^(\d+)（(\d+)學年度）$', classes)
+        if m:
+            return (m.group(1), int(m.group(2)))
+        return None
+
     def _parse_jobs(self, jobs):
         if not jobs:
+            return None
+        if re.search(r'^.{2,4}科專任教師兼\d+班導（\d+學年度）$', jobs):
             return None
         return self.JOBS_QID[jobs]
 
