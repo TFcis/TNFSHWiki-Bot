@@ -44,6 +44,8 @@ class MigrateTeacherDataToItem:
         '特教組長': 'Q113',
         '總務主任': 'Q128',
         '校長室主任秘書': 'Q156',
+        '教學組長': 'Q165',
+        '訓育組組長': 'Q172',
     }
     LIVE_QID = {
         '現任': 'Q64',
@@ -64,7 +66,9 @@ class MigrateTeacherDataToItem:
     def __init__(self, title):
         self.title = title
         self.page = pywikibot.Page(site, title)
+        self.page.text = re.sub(r'(\|jobs=.*)(\|class=)', r'\1\n\2', self.page.text)
 
+        self.image = self._get_tem_val(self.page.text, 'image')
         self.gender = self._get_tem_val(self.page.text, 'gender')
         self.subject = self._get_tem_val(self.page.text, 'subject')
         self.jobs = self._get_tem_val(self.page.text, 'jobs')
@@ -74,6 +78,7 @@ class MigrateTeacherDataToItem:
         self.edustatus = self._get_tem_val(self.page.text, 'edustatus')
         self.education = self._get_tem_val(self.page.text, 'education')
 
+        self.image, self.imageinfo = self._parse_image(self.image)
         self.gender_id = self._parse_gender(self.gender)
         self.subject_id = self._parse_subject(self.subject)
         self.jobs_id = self._parse_jobs(self.jobs)
@@ -83,6 +88,7 @@ class MigrateTeacherDataToItem:
         self.edustatus = self._parse_edustatus(self.edustatus)
         self._parse_education(self.education)
 
+        print('image', self.image, self.imageinfo)
         print('gender', self.gender, self.gender_id)
         print('subject', self.subject, self.subject_id)
         print('jobs', self.jobs)
@@ -165,6 +171,16 @@ class MigrateTeacherDataToItem:
             new_claim.setTarget(status)
             data['claims'].append(new_claim.toJSON())
 
+        # 圖片
+        if self.image:
+            new_claim = pywikibot.page.Claim(datasite, 'P33')
+            new_claim.setTarget(self.image)
+            if self.imageinfo:
+                qualifier = pywikibot.page.Claim(datasite, 'P34')  # 圖片資訊
+                qualifier.setTarget(self.imageinfo)
+                new_claim.addQualifier(qualifier)
+            data['claims'].append(new_claim.toJSON())
+
         print(json.dumps(data['labels'], indent=4, ensure_ascii=False))
         for claim in data['claims']:
             print(claim['mainsnak']['property'],
@@ -178,7 +194,7 @@ class MigrateTeacherDataToItem:
         newitemid = item['entity']['id']
 
         text = self.page.text
-        text = re.sub(r'{{簡介 老師[\s\S]+?}}\n*', r'{{老師資訊框}}\n', text)
+        text = re.sub(r'{{(簡介 老師|Infobox teacher)[\s\S]+?}}\n*', r'{{老師資訊框}}\n', text)
         text = re.sub(r'{{Expand\|.+}}\n*', '', text)
         pywikibot.showDiff(self.page.text, text)
         summary = '資料已匯入至[[Item:{}]]'.format(newitemid)
@@ -187,10 +203,18 @@ class MigrateTeacherDataToItem:
         self.page.save(summary=summary, minor=False, asynchronous=True)
 
     def _get_tem_val(self, text, key):
-        m = re.search(r'[\s\S]*\|\s*{}\s*=\s*([^|}}]*?)\s*(\||}}}})'.format(key), text)
+        m = re.search(r'[\s\S]*\|\s*{}\s*=\s*((?:[^|}}]|\[\[File:[^\]]+\]\])*?)\s*(\||}}}})'.format(key), text)
         if m:
             return m.group(1)
         return None
+
+    def _parse_image(self, image):
+        if not image:
+            return None, None
+        m = re.search(r'\[\[File:(.+?)\|\d+px\]\](?:<br>(.+))?$', image)
+        if m:
+            return m.group(1), m.group(2)
+        return None, None
 
     def _parse_gender(self, gender):
         if not gender:
@@ -216,7 +240,7 @@ class MigrateTeacherDataToItem:
             m = re.search(r'^(\d+)（(\d+)學年度）$', class1)
             if m:
                 result.append((m.group(1), int(m.group(2))))
-            else:
+            elif not re.search(r'^\d+班（\d+級）$', class1):
                 raise Exception('Cannot parse {}'.format(class1))
         return result
 
@@ -244,6 +268,8 @@ class MigrateTeacherDataToItem:
     def _parse_live(self, live):
         if not live:
             return None
+        if re.search(r'至今', live):
+            return self.LIVE_QID['現任']
         return self.LIVE_QID[live]
 
     def _parse_nickname(self, nickname):
