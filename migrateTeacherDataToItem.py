@@ -43,10 +43,12 @@ class MigrateTeacherDataToItem:
         '社團活動組組長': 'Q91',
         '特教組長': 'Q113',
         '總務主任': 'Q128',
+        '校長室主任秘書': 'Q156',
     }
     LIVE_QID = {
         '現任': 'Q64',
         '離任': 'Q65',
+        '已離任': 'Q65',
         '退休': 'Q86',
         '已退休': 'Q86',
     }
@@ -226,7 +228,7 @@ class MigrateTeacherDataToItem:
             if not self.live:
                 self.live = jobs
             return None
-        if re.search(r'^.{2,5}科專任教師（\d+學年度）$', jobs):
+        if re.search(r'^.{2,5}科專任教師(（\d+學年度）)?$', jobs):
             return None
         if re.search(r'^.{2,5}科專任教師兼(\d+)?(班導|導師)（\d+學年度）$', jobs):
             return None
@@ -257,6 +259,7 @@ class MigrateTeacherDataToItem:
             return []
         edustatus = re.sub(r'<br\s*/?\s*>', '\n', edustatus)
         edustatus = re.sub(r'\n\n+', '\n', edustatus)
+        edustatus = re.sub(r'\n$', '', edustatus)
         edustatus = edustatus.split('\n')
         return edustatus
 
