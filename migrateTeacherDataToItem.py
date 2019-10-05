@@ -174,7 +174,7 @@ class MigrateTeacherDataToItem:
         text = re.sub(r'{{Expand\|.+}}\n*', '', text)
         pywikibot.showDiff(self.page.text, text)
         summary = '資料已匯入至[[Item:{}]]'.format(newitemid)
-        input('Save with summary: {}'.format(summary))
+        print('Save with summary: {}'.format(summary))
         self.page.text = text
         self.page.save(summary=summary, minor=False, asynchronous=True)
 
@@ -207,10 +207,12 @@ class MigrateTeacherDataToItem:
     def _parse_jobs(self, jobs):
         if not jobs:
             return None
-        if jobs == '現任':
+        if jobs in self.LIVE_QID:
             self.jobs = ''
             if not self.live:
                 self.live = jobs
+            return None
+        if re.search(r'^.{2,4}科專任教師（\d+學年度）$', jobs):
             return None
         if re.search(r'^.{2,4}科專任教師兼(\d+)?(班導|導師)（\d+學年度）$', jobs):
             return None
