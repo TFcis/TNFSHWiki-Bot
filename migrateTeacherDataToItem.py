@@ -190,10 +190,12 @@ class MigrateTeacherDataToItem:
     def _parse_class(self, classes):
         if not classes:
             return None
+        if classes == '否':
+            return None
         m = re.search(r'^(\d+)（(\d+)學年度）$', classes)
         if m:
             return (m.group(1), int(m.group(2)))
-        return None
+        raise Exception('Cannot parse {}'.format(classes))
 
     def _parse_jobs(self, jobs):
         if not jobs:
