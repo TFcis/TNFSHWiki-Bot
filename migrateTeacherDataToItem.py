@@ -39,6 +39,8 @@ class MigrateTeacherDataToItem:
         '全民國防': 'Q63',
     }
     JOBS_QID = {
+        '圖書館主任': 'Q78',
+        '社團活動組組長': 'Q91',
     }
     LIVE_QID = {
         '現任': 'Q64',
@@ -121,7 +123,11 @@ class MigrateTeacherDataToItem:
         # 行政職位
         if self.jobs_id:
             new_claim = pywikibot.page.Claim(datasite, 'P28')
-            new_claim.setTarget(pywikibot.ItemPage(datasite, self.jobs_id))
+            new_claim.setTarget(pywikibot.ItemPage(datasite, self.jobs_id[0]))
+            if jobs_id[1]:
+                qualifier = pywikibot.page.Claim(datasite, 'P27')  # 學年度
+                qualifier.setTarget(pywikibot.ItemPage(datasite, self.YEAR_QID[self.class_id[1]]))
+                new_claim.addQualifier(qualifier)
             data['claims'].append(new_claim.toJSON())
 
         # 導師
@@ -210,7 +216,12 @@ class MigrateTeacherDataToItem:
             return None
         if re.search(r'^退休教師$', jobs):
             return None
-        return self.JOBS_QID[jobs]
+        m = re.search(r'^.{2,4}科專任教師兼.{2}處(社團活動組組長)（(\d+)學年度）$', jobs)
+        year = None
+        if m:
+            jobs = m.group(1)
+            year = int(m.group(2))
+        return (self.JOBS_QID[jobs], year)
 
     def _parse_live(self, live):
         if not live:
