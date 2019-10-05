@@ -244,7 +244,10 @@ class MigrateTeacherDataToItem:
     def _parse_nickname(self, nickname):
         if not nickname:
             return []
-        return nickname.split('、')
+        nickname = re.sub(r'、', '\n', nickname)
+        nickname = re.sub(r'<br\s*/?>', '\n', nickname)
+        nickname = re.sub(r'\n\n+', '\n', nickname)
+        return nickname.split('\n')
 
     def _parse_edustatus(self, edustatus):
         if not edustatus:
