@@ -37,6 +37,7 @@ class MigrateTeacherDataToItem:
         '家政': 'Q61',
         '健康與護理': 'Q62',
         '全民國防': 'Q63',
+        '表演藝術': 'Q297',
     }
     JOBS_QID = {
         '圖書館主任': 'Q78',
@@ -48,6 +49,10 @@ class MigrateTeacherDataToItem:
         '訓育組組長': 'Q172',
         '學務處主任': 'Q209',
         '教務處主任': 'Q210',
+        '資訊組長': 'Q230',
+        '訓育組長': 'Q268',
+        '生輔組長': 'Q285',
+        '試務組長': 'Q291',
     }
     LIVE_QID = {
         '現任': 'Q64',
@@ -63,7 +68,7 @@ class MigrateTeacherDataToItem:
         105: 'Q72',
         106: 'Q71',
         107: 'Q70',
-        108: 'Q64',
+        108: 'Q69',
     }
 
     def __init__(self, title):
@@ -72,8 +77,7 @@ class MigrateTeacherDataToItem:
         self.page.text = re.sub(r'(\|jobs=.*)(\|class=)', r'\1\n\2', self.page.text)
 
         self.image = self._get_tem_val(self.page.text, 'image')
-        # if self.image:
-        #     raise Exception('')
+        self.imageinfo = self._get_tem_val(self.page.text, 'imageinfo')
         self.gender = self._get_tem_val(self.page.text, 'gender')
         self.subject = self._get_tem_val(self.page.text, 'subject')
         self.jobs = self._get_tem_val(self.page.text, 'jobs')
@@ -83,7 +87,9 @@ class MigrateTeacherDataToItem:
         self.edustatus = self._get_tem_val(self.page.text, 'edustatus')
         self.education = self._get_tem_val(self.page.text, 'education')
 
-        self.image, self.imageinfo = self._parse_image(self.image)
+        self.image, imageinfo = self._parse_image(self.image)
+        if imageinfo and not self.imageinfo:
+            self.imageinfo = imageinfo
         self.gender_id = self._parse_gender(self.gender)
         self.subject_id = self._parse_subject(self.subject)
         self.jobs_id = self._parse_jobs(self.jobs)
@@ -193,7 +199,9 @@ class MigrateTeacherDataToItem:
                   claim['mainsnak']['datavalue'])
 
         summary = '從[[{}]]匯入老師資料'.format(self.title)
-        input('Create item with summary: {}'.format(summary))
+        print('Create item with summary: {}'.format(summary))
+        if self.image:
+            input('Check image')
         item = datasite.editEntity({}, data, summary=summary)
         print(item['entity']['id'])
         newitemid = item['entity']['id']
@@ -216,7 +224,7 @@ class MigrateTeacherDataToItem:
     def _parse_image(self, image):
         if not image:
             return None, None
-        m = re.search(r'\[\[File:(.+?)\|\d+px\]\](?:<br\s*/?\s*>(.+))?$', image)
+        m = re.search(r'\[\[File:(.+?)(?:\|\d+px)?\]\](?:<br\s*/?\s*>(.+))?$', image)
         if m:
             return m.group(1), m.group(2)
         return None, None
@@ -257,9 +265,9 @@ class MigrateTeacherDataToItem:
             if not self.live:
                 self.live = jobs
             return []
-        if re.search(r'^.{2,5}科專任教師(（\d+學年度）)?$', jobs):
+        if re.search(r'^.{2,5}科(專任教師|兼任教師)(（\d+學年度）)?$', jobs):
             return []
-        if re.search(r'^.{2,5}科專任教師兼(\d+)?(班導|導師)（\d+學年度）$', jobs):
+        if re.search(r'^.{2,5}科專任教師兼(\d+)?(班導|導師)(（\d+學年度）)?$', jobs):
             return []
         if re.search(r'^(無|離職教師|退休教師|已退休.*)$', jobs):
             return []
@@ -269,7 +277,7 @@ class MigrateTeacherDataToItem:
         jobs = jobs.split('\n')
         result = []
         for job in jobs:
-            m = re.search(r'^.{{2,5}}科專任教師兼(?:.{{2}}處)?({})（(\d+)學年度）$'.format('|'.join(list(self.JOBS_QID.keys()))), job)
+            m = re.search(r'^.{{2,5}}科(?:專任)?教師兼(?:.{{2}}處)?({})（(\d+)學年度）$'.format('|'.join(list(self.JOBS_QID.keys()))), job)
             if m:
                 result.append((self.JOBS_QID[m.group(1)], int(m.group(2))))
             else:
@@ -281,7 +289,10 @@ class MigrateTeacherDataToItem:
             return None
         if re.search(r'至今', live):
             return self.LIVE_QID['現任']
-        return self.LIVE_QID[live]
+        for livekey in self.LIVE_QID:
+            if livekey in live:
+                return self.LIVE_QID[livekey]
+        return None
 
     def _parse_nickname(self, nickname):
         if not nickname:
@@ -303,7 +314,7 @@ class MigrateTeacherDataToItem:
     def _parse_education(self, education):
         if not education:
             return []
-        if '是' in education:
+        if education.startswith('是'):
             self.edustatus.append('國立臺南第一高級中學')
 
 
