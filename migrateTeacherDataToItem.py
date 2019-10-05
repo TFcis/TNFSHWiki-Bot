@@ -43,6 +43,7 @@ class MigrateTeacherDataToItem:
     LIVE_QID = {
         '現任': 'Q64',
         '離任': 'Q65',
+        '退休': 'Q86',
     }
     YEAR_QID = {
         103: 'Q74',
@@ -204,6 +205,8 @@ class MigrateTeacherDataToItem:
             return None
         if re.search(r'^.{2,4}科專任教師兼(\d+)?(班導|導師)（\d+學年度）$', jobs):
             return None
+        if re.search(r'^退休教師$', jobs):
+            return None
         return self.JOBS_QID[jobs]
 
     def _parse_live(self, live):
@@ -212,6 +215,8 @@ class MigrateTeacherDataToItem:
         return self.LIVE_QID[live]
 
     def _parse_edustatus(self, edustatus):
+        if not edustatus:
+            return []
         edustatus = re.sub(r'<br\s*/?>', '\n', edustatus)
         edustatus = re.sub(r'\n\n+', '\n', edustatus)
         edustatus = edustatus.split('\n')
