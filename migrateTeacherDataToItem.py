@@ -67,6 +67,7 @@ class MigrateTeacherDataToItem:
         self.live = self._get_tem_val(self.page.text, 'live')
         self.nickname = self._get_tem_val(self.page.text, 'nickname')
         self.edustatus = self._get_tem_val(self.page.text, 'edustatus')
+        self.education = self._get_tem_val(self.page.text, 'education')
 
         self.gender_id = self._parse_gender(self.gender)
         self.subject_id = self._parse_subject(self.subject)
@@ -74,6 +75,7 @@ class MigrateTeacherDataToItem:
         self.class_id = self._parse_class(self.classes)
         self.live_id = self._parse_live(self.live)
         self.edustatus = self._parse_edustatus(self.edustatus)
+        self._parse_education(self.education)
 
         print('gender', self.gender, self.gender_id)
         print('subject', self.subject, self.subject_id)
@@ -245,6 +247,12 @@ class MigrateTeacherDataToItem:
         edustatus = re.sub(r'\n\n+', '\n', edustatus)
         edustatus = edustatus.split('\n')
         return edustatus
+
+    def _parse_education(self, education):
+        if not education:
+            return []
+        if education == '是':
+            self.edustatus.append('國立臺南第一高級中學')
 
 
 def main():
