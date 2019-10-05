@@ -165,6 +165,7 @@ class MigrateTeacherDataToItem:
 
         text = self.page.text
         text = re.sub(r'{{簡介 老師[\s\S]+?}}\n*', r'{{老師資訊框}}\n', text)
+        text = re.sub(r'{{Expand\|.+}}\n*', '', text)
         pywikibot.showDiff(self.page.text, text)
         summary = '資料已匯入至[[Item:{}]]'.format(newitemid)
         input('Save with summary: {}'.format(summary))
