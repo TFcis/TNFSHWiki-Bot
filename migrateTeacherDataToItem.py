@@ -201,7 +201,7 @@ class MigrateTeacherDataToItem:
     def _parse_class(self, classes):
         if not classes:
             return []
-        if re.search(r'^否(（\d+學年度）)?$', classes):
+        if re.search(r'^(否|無)(（\d+學年度）)?$', classes):
             return []
 
         classes = re.sub(r'<br\s*/?>', '\n', classes)
@@ -224,13 +224,13 @@ class MigrateTeacherDataToItem:
             if not self.live:
                 self.live = jobs
             return None
-        if re.search(r'^.{2,4}科專任教師（\d+學年度）$', jobs):
+        if re.search(r'^.{2,5}科專任教師（\d+學年度）$', jobs):
             return None
-        if re.search(r'^.{2,4}科專任教師兼(\d+)?(班導|導師)（\d+學年度）$', jobs):
+        if re.search(r'^.{2,5}科專任教師兼(\d+)?(班導|導師)（\d+學年度）$', jobs):
             return None
         if re.search(r'^退休教師$', jobs):
             return None
-        m = re.search(r'^.{2,4}科專任教師兼.{2}處(社團活動組組長)（(\d+)學年度）$', jobs)
+        m = re.search(r'^.{2,5}科專任教師兼.{2}處(.*)（(\d+)學年度）$', jobs)
         year = None
         if m:
             jobs = m.group(1)
