@@ -42,11 +42,13 @@ class MigrateTeacherDataToItem:
         '圖書館主任': 'Q78',
         '社團活動組組長': 'Q91',
         '特教組長': 'Q113',
+        '總務主任': 'Q128',
     }
     LIVE_QID = {
         '現任': 'Q64',
         '離任': 'Q65',
         '退休': 'Q86',
+        '已退休': 'Q86',
     }
     YEAR_QID = {
         103: 'Q74',
@@ -201,7 +203,7 @@ class MigrateTeacherDataToItem:
     def _parse_class(self, classes):
         if not classes:
             return []
-        if re.search(r'^(否|無)(（\d+學年度）)?$', classes):
+        if re.search(r'^(否|無|是)(（\d+學年度）)?$', classes):
             return []
 
         classes = re.sub(r'<br\s*/?>', '\n', classes)
@@ -228,9 +230,9 @@ class MigrateTeacherDataToItem:
             return None
         if re.search(r'^.{2,5}科專任教師兼(\d+)?(班導|導師)（\d+學年度）$', jobs):
             return None
-        if re.search(r'^退休教師$', jobs):
+        if re.search(r'^(無|退休教師|已退休.*)$', jobs):
             return None
-        m = re.search(r'^.{2,5}科專任教師兼.{2}處(.*)（(\d+)學年度）$', jobs)
+        m = re.search(r'^.{2,5}科專任教師兼(?:.{2}處)?(.*)（(\d+)學年度）$', jobs)
         year = None
         if m:
             jobs = m.group(1)
@@ -253,7 +255,7 @@ class MigrateTeacherDataToItem:
     def _parse_edustatus(self, edustatus):
         if not edustatus:
             return []
-        edustatus = re.sub(r'<br\s*/?>', '\n', edustatus)
+        edustatus = re.sub(r'<br\s*/?\s*>', '\n', edustatus)
         edustatus = re.sub(r'\n\n+', '\n', edustatus)
         edustatus = edustatus.split('\n')
         return edustatus
@@ -261,7 +263,7 @@ class MigrateTeacherDataToItem:
     def _parse_education(self, education):
         if not education:
             return []
-        if education == '是':
+        if '是' in education:
             self.edustatus.append('國立臺南第一高級中學')
 
 
