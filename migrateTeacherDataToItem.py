@@ -197,7 +197,7 @@ class MigrateTeacherDataToItem:
     def _parse_class(self, classes):
         if not classes:
             return None
-        if classes == '否':
+        if re.search(r'^否(（\d+學年度）)?$', classes):
             return None
         m = re.search(r'^(\d+)（(\d+)學年度）$', classes)
         if m:
