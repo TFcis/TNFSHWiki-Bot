@@ -131,11 +131,11 @@ class MigrateTeacherDataToItem:
             data['claims'].append(new_claim.toJSON())
 
         # 導師
-        if self.class_id:
+        for class1 in self.class_id:
             new_claim = pywikibot.page.Claim(datasite, 'P25')
-            new_claim.setTarget(self.class_id[0])
+            new_claim.setTarget(class1[0])
             qualifier = pywikibot.page.Claim(datasite, 'P27')  # 學年度
-            qualifier.setTarget(pywikibot.ItemPage(datasite, self.YEAR_QID[self.class_id[1]]))
+            qualifier.setTarget(pywikibot.ItemPage(datasite, self.YEAR_QID[class1[1]]))
             new_claim.addQualifier(qualifier)
             data['claims'].append(new_claim.toJSON())
 
@@ -179,7 +179,7 @@ class MigrateTeacherDataToItem:
         self.page.save(summary=summary, minor=False, asynchronous=True)
 
     def _get_tem_val(self, text, key):
-        m = re.search(r'\|\s*{}\s*=\s*([^|}}]*?)\s*(\||}}}})'.format(key), text)
+        m = re.search(r'[\s\S]*\|\s*{}\s*=\s*([^|}}]*?)\s*(\||}}}})'.format(key), text)
         if m:
             return m.group(1)
         return None
@@ -199,10 +199,18 @@ class MigrateTeacherDataToItem:
             return None
         if re.search(r'^否(（\d+學年度）)?$', classes):
             return None
-        m = re.search(r'^(\d+)（(\d+)學年度）$', classes)
-        if m:
-            return (m.group(1), int(m.group(2)))
-        raise Exception('Cannot parse {}'.format(classes))
+
+        classes = re.sub(r'<br\s*/?>', '\n', classes)
+        classes = re.sub(r'\n\n+', '\n', classes)
+        classes = classes.split('\n')
+        result = []
+        for class1 in classes:
+            m = re.search(r'^(\d+)（(\d+)學年度）$', class1)
+            if m:
+                result.append((m.group(1), int(m.group(2))))
+            else:
+                raise Exception('Cannot parse {}'.format(class1))
+        return result
 
     def _parse_jobs(self, jobs):
         if not jobs:
