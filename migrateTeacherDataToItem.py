@@ -54,7 +54,6 @@ class MigrateTeacherDataToItem:
         classes = self._get_tem_val(page.text, 'class')
         live = self._get_tem_val(page.text, 'live')
         nickname = self._get_tem_val(page.text, 'nickname')
-        education = self._get_tem_val(page.text, 'education')
 
         gender_id = self._parse_gender(gender)
         subject_id = self._parse_subject(subject)
@@ -67,7 +66,6 @@ class MigrateTeacherDataToItem:
         print('classes', classes)
         print('live', live, live_id)
         print('nickname', nickname)
-        print('education', education)
 
         # Init empty item
         data = {
@@ -127,12 +125,6 @@ class MigrateTeacherDataToItem:
         if nickname:
             new_claim = pywikibot.page.Claim(datasite, 'P30')
             new_claim.setTarget(pywikibot.ItemPage(datasite, nickname))
-            data['claims'].append(new_claim.toJSON())
-
-        # 校友
-        if education:
-            new_claim = pywikibot.page.Claim(datasite, 'P21')
-            new_claim.setTarget(pywikibot.ItemPage(datasite, education))
             data['claims'].append(new_claim.toJSON())
 
         print(json.dumps(data['labels'], indent=4, ensure_ascii=False))
