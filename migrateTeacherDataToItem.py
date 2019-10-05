@@ -63,12 +63,14 @@ class MigrateTeacherDataToItem:
         self.classes = self._get_tem_val(self.page.text, 'class')
         self.live = self._get_tem_val(self.page.text, 'live')
         self.nickname = self._get_tem_val(self.page.text, 'nickname')
+        self.edustatus = self._get_tem_val(self.page.text, 'edustatus')
 
         self.gender_id = self._parse_gender(self.gender)
         self.subject_id = self._parse_subject(self.subject)
         self.jobs_id = self._parse_jobs(self.jobs)
         self.class_id = self._parse_class(self.classes)
         self.live_id = self._parse_live(self.live)
+        self.edustatus = self._parse_edustatus(self.edustatus)
 
         print('gender', self.gender, self.gender_id)
         print('subject', self.subject, self.subject_id)
@@ -76,6 +78,7 @@ class MigrateTeacherDataToItem:
         print('classes', self.classes)
         print('live', self.live, self.live_id)
         print('nickname', self.nickname)
+        print('edustatus', self.edustatus)
 
     def save(self):
         # Init empty item
@@ -141,6 +144,12 @@ class MigrateTeacherDataToItem:
             new_claim.setTarget(pywikibot.ItemPage(datasite, self.nickname))
             data['claims'].append(new_claim.toJSON())
 
+        # 學歷
+        for status in self.edustatus:
+            new_claim = pywikibot.page.Claim(datasite, 'P29')
+            new_claim.setTarget(status)
+            data['claims'].append(new_claim.toJSON())
+
         print(json.dumps(data['labels'], indent=4, ensure_ascii=False))
         for claim in data['claims']:
             print(claim['mainsnak']['property'],
@@ -162,7 +171,7 @@ class MigrateTeacherDataToItem:
         self.page.save(summary=summary, minor=False, asynchronous=True)
 
     def _get_tem_val(self, text, key):
-        m = re.search(r'\|\s*{}\s*=\s*([^|\n}}]*?)\s*(\||\n|}}}})'.format(key), text)
+        m = re.search(r'\|\s*{}\s*=\s*([^|}}]*?)\s*(\||}}}})'.format(key), text)
         if m:
             return m.group(1)
         return None
@@ -193,7 +202,7 @@ class MigrateTeacherDataToItem:
             if not self.live:
                 self.live = jobs
             return None
-        if re.search(r'^.{2,4}科專任教師兼\d+班導（\d+學年度）$', jobs):
+        if re.search(r'^.{2,4}科專任教師兼(\d+)?(班導|導師)（\d+學年度）$', jobs):
             return None
         return self.JOBS_QID[jobs]
 
@@ -201,6 +210,12 @@ class MigrateTeacherDataToItem:
         if not live:
             return None
         return self.LIVE_QID[live]
+
+    def _parse_edustatus(self, edustatus):
+        edustatus = re.sub(r'<br\s*/?>', '\n', edustatus)
+        edustatus = re.sub(r'\n\n+', '\n', edustatus)
+        edustatus = edustatus.split('\n')
+        return edustatus
 
 
 def main():
