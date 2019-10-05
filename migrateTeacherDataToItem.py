@@ -46,11 +46,14 @@ class MigrateTeacherDataToItem:
         '校長室主任秘書': 'Q156',
         '教學組長': 'Q165',
         '訓育組組長': 'Q172',
+        '學務處主任': 'Q209',
+        '教務處主任': 'Q210',
     }
     LIVE_QID = {
         '現任': 'Q64',
         '離任': 'Q65',
         '已離任': 'Q65',
+        '離職': 'Q65',
         '退休': 'Q86',
         '已退休': 'Q86',
     }
@@ -69,6 +72,8 @@ class MigrateTeacherDataToItem:
         self.page.text = re.sub(r'(\|jobs=.*)(\|class=)', r'\1\n\2', self.page.text)
 
         self.image = self._get_tem_val(self.page.text, 'image')
+        # if self.image:
+        #     raise Exception('')
         self.gender = self._get_tem_val(self.page.text, 'gender')
         self.subject = self._get_tem_val(self.page.text, 'subject')
         self.jobs = self._get_tem_val(self.page.text, 'jobs')
@@ -135,12 +140,12 @@ class MigrateTeacherDataToItem:
             data['claims'].append(new_claim.toJSON())
 
         # 行政職位
-        if self.jobs_id:
+        for job in self.jobs_id:
             new_claim = pywikibot.page.Claim(datasite, 'P28')
-            new_claim.setTarget(pywikibot.ItemPage(datasite, self.jobs_id[0]))
-            if self.jobs_id[1]:
+            new_claim.setTarget(pywikibot.ItemPage(datasite, job[0]))
+            if job[1]:
                 qualifier = pywikibot.page.Claim(datasite, 'P27')  # 學年度
-                qualifier.setTarget(pywikibot.ItemPage(datasite, self.YEAR_QID[self.jobs_id[1]]))
+                qualifier.setTarget(pywikibot.ItemPage(datasite, self.YEAR_QID[job[1]]))
                 new_claim.addQualifier(qualifier)
             data['claims'].append(new_claim.toJSON())
 
@@ -203,7 +208,7 @@ class MigrateTeacherDataToItem:
         self.page.save(summary=summary, minor=False, asynchronous=True)
 
     def _get_tem_val(self, text, key):
-        m = re.search(r'[\s\S]*\|\s*{}\s*=\s*((?:[^|}}]|\[\[File:[^\]]+\]\])*?)\s*(\||}}}})'.format(key), text)
+        m = re.search(r'[\s\S]*\|\s*{}\s*=\s*((?:\[\[File:[^\]]+\]\]|[^|}}])*?)\s*(\||}}}})'.format(key), text)
         if m:
             return m.group(1)
         return None
@@ -211,7 +216,7 @@ class MigrateTeacherDataToItem:
     def _parse_image(self, image):
         if not image:
             return None, None
-        m = re.search(r'\[\[File:(.+?)\|\d+px\]\](?:<br>(.+))?$', image)
+        m = re.search(r'\[\[File:(.+?)\|\d+px\]\](?:<br\s*/?\s*>(.+))?$', image)
         if m:
             return m.group(1), m.group(2)
         return None, None
@@ -246,24 +251,30 @@ class MigrateTeacherDataToItem:
 
     def _parse_jobs(self, jobs):
         if not jobs:
-            return None
+            return []
         if jobs in self.LIVE_QID:
             self.jobs = ''
             if not self.live:
                 self.live = jobs
-            return None
+            return []
         if re.search(r'^.{2,5}科專任教師(（\d+學年度）)?$', jobs):
-            return None
+            return []
         if re.search(r'^.{2,5}科專任教師兼(\d+)?(班導|導師)（\d+學年度）$', jobs):
-            return None
-        if re.search(r'^(無|退休教師|已退休.*)$', jobs):
-            return None
-        m = re.search(r'^.{2,5}科專任教師兼(?:.{2}處)?(.*)（(\d+)學年度）$', jobs)
-        year = None
-        if m:
-            jobs = m.group(1)
-            year = int(m.group(2))
-        return (self.JOBS_QID[jobs], year)
+            return []
+        if re.search(r'^(無|離職教師|退休教師|已退休.*)$', jobs):
+            return []
+
+        jobs = re.sub(r'<br\s*/?>', '\n', jobs)
+        jobs = re.sub(r'\n\n+', '\n', jobs)
+        jobs = jobs.split('\n')
+        result = []
+        for job in jobs:
+            m = re.search(r'^.{{2,5}}科專任教師兼(?:.{{2}}處)?({})（(\d+)學年度）$'.format('|'.join(list(self.JOBS_QID.keys()))), job)
+            if m:
+                result.append((self.JOBS_QID[m.group(1)], int(m.group(2))))
+            else:
+                raise Exception('Cannot parse {}'.format(job))
+        return result
 
     def _parse_live(self, live):
         if not live:
@@ -275,7 +286,7 @@ class MigrateTeacherDataToItem:
     def _parse_nickname(self, nickname):
         if not nickname:
             return []
-        nickname = re.sub(r'、', '\n', nickname)
+        nickname = re.sub(r'[、，]', '\n', nickname)
         nickname = re.sub(r'<br\s*/?>', '\n', nickname)
         nickname = re.sub(r'\n\n+', '\n', nickname)
         return nickname.split('\n')
