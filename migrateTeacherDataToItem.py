@@ -74,6 +74,7 @@ class MigrateTeacherDataToItem:
         self.jobs_id = self._parse_jobs(self.jobs)
         self.class_id = self._parse_class(self.classes)
         self.live_id = self._parse_live(self.live)
+        self.nickname = self._parse_nickname(self.nickname)
         self.edustatus = self._parse_edustatus(self.edustatus)
         self._parse_education(self.education)
 
@@ -148,9 +149,9 @@ class MigrateTeacherDataToItem:
             data['claims'].append(new_claim.toJSON())
 
         # 別稱
-        if self.nickname:
+        for nickname in self.nickname:
             new_claim = pywikibot.page.Claim(datasite, 'P30')
-            new_claim.setTarget(self.nickname)
+            new_claim.setTarget(nickname)
             data['claims'].append(new_claim.toJSON())
 
         # 學歷
@@ -239,6 +240,11 @@ class MigrateTeacherDataToItem:
         if not live:
             return None
         return self.LIVE_QID[live]
+
+    def _parse_nickname(self, nickname):
+        if not nickname:
+            return []
+        return nickname.split('、')
 
     def _parse_edustatus(self, edustatus):
         if not edustatus:
