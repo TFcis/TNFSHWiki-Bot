@@ -124,9 +124,9 @@ class MigrateTeacherDataToItem:
         if self.jobs_id:
             new_claim = pywikibot.page.Claim(datasite, 'P28')
             new_claim.setTarget(pywikibot.ItemPage(datasite, self.jobs_id[0]))
-            if jobs_id[1]:
+            if self.jobs_id[1]:
                 qualifier = pywikibot.page.Claim(datasite, 'P27')  # 學年度
-                qualifier.setTarget(pywikibot.ItemPage(datasite, self.YEAR_QID[self.class_id[1]]))
+                qualifier.setTarget(pywikibot.ItemPage(datasite, self.YEAR_QID[self.jobs_id[1]]))
                 new_claim.addQualifier(qualifier)
             data['claims'].append(new_claim.toJSON())
 
@@ -148,7 +148,7 @@ class MigrateTeacherDataToItem:
         # 別稱
         if self.nickname:
             new_claim = pywikibot.page.Claim(datasite, 'P30')
-            new_claim.setTarget(pywikibot.ItemPage(datasite, self.nickname))
+            new_claim.setTarget(self.nickname)
             data['claims'].append(new_claim.toJSON())
 
         # 學歷
