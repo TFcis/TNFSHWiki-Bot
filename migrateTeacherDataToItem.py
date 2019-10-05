@@ -41,6 +41,7 @@ class MigrateTeacherDataToItem:
     JOBS_QID = {
         '圖書館主任': 'Q78',
         '社團活動組組長': 'Q91',
+        '特教組長': 'Q113',
     }
     LIVE_QID = {
         '現任': 'Q64',
